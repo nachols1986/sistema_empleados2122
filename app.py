@@ -15,7 +15,7 @@ mysql.init_app(app)
 @app.route('/')
 def index():
     # vamos a hacer que inserte un registro
-    sql = "INSERT INTO `empleados` (`id`, `nombre`, `mail`, `foto`) VALUES (NULL, 'nombre_prueba', 'correo_electronico@gmail.com', 'foto.jpg');"
+    sql = "INSERT INTO `empleados` (`id`, `nombre`, `mail`, `foto`) VALUES (NULL, 'nachols', 'correo_electronico@gmail.com', 'foto.jpg');"
     conn = mysql.connect()
     cursor = conn.cursor()
     cursor.execute(sql)

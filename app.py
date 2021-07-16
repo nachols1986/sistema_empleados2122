@@ -1,6 +1,11 @@
 from flask import Flask
-from flask import render_template
+from flask import render_template, request, redirect
+from flask.wrappers import Request
 from flaskext.mysql import MySQL
+
+
+from datetime import datetime
+#importe dt para poder pegarle un timestamp a las fotos
 
 app = Flask(__name__)
 
@@ -14,17 +19,81 @@ mysql.init_app(app)
 
 @app.route('/')
 def index():
-    # vamos a hacer que inserte un registro
-    sql = "INSERT INTO `empleados` (`id`, `nombre`, `mail`, `foto`) VALUES (NULL, 'nachols', 'correo_electronico@gmail.com', 'foto.jpg');"
+    # vamos a hacer que nos devuelva la lista
+    sql = "SELECT * FROM empleados"
     conn = mysql.connect()
     cursor = conn.cursor()
     cursor.execute(sql)
+    empleados = cursor.fetchall()
+    
+    conn.commit()
+    
+    return render_template('empleados/index.html', empleados = empleados)
+
+@app.route('/destroy/<int:id>')
+def destroy(id):
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    sql = "DELETE FROM empleados WHERE id = %s"
+    cursor.execute(sql, (id))
+    conn.commit()
+    return redirect('/')
+
+@app.route('/edit/<int:id>')
+def edit(id):
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    sql = "SELECT * FROM empleados WHERE id = %s"
+    cursor.execute(sql, (id))
+    empleados = cursor.fetchall()
     conn.commit()
 
+    return render_template('empleados/edit.html', empleados = empleados)
+
+@app.route('/update', methods = ['POST'])
+def update():
+    _id = request.form['txtID']
+    _nombre = request.form['txtNombre']
+    _correo = request.form['txtCorreo']
+    _foto = request.files['txtFoto']
+
+    sql = "UPDATE empleados SET nombre = %s, mail = %s WHERE id = %s;"
+    datos = (_nombre, _correo, _id)
+    
+    conn=mysql.connect()
+    cursor=conn.cursor()
+    cursor.execute(sql, datos)
+    conn.commit()
+    return redirect('/')
+
+@app.route('/create')
+def create():
+    return render_template('empleados/create.html')
+
+@app.route('/store', methods=['POST'])
+def storage():
+    _nombre = request.form['txtNombre']
+    _correo = request.form['txtCorreo']
+    _foto = request.files['txtFoto']
+
+    now = datetime.now()
+    tiempo=now.strftime("%Y%H%M%S")
+
+    if _foto.filename != '':
+        nuevoNombreFoto = tiempo +_foto.filename
+        _foto.save("uploads/" + nuevoNombreFoto)
+
+    sql = "INSERT INTO empleados ('id', 'nombre', 'mail', 'foto') VALUES (NULL, %s,%s, %s);"
+
+    datos=(_nombre, _correo,nuevoNombreFoto)
+    conn=mysql.connect()
+    cursor=conn.cursor()
+    cursor.execute(sql, datos)
+    conn.commit()
     return render_template('empleados/index.html')
 
 if __name__ == '__main__':
     app.run(debug = True)
 
 # comando insert
-# INSERT INTO `empleados` (`id`, `nombre`, `mail`, `foto`) VALUES (NULL, 'nombre_prueba', 'correo_electronico@gmail.com', 'foto.jpg');
+# INSERT INTO 'empleados' ('id', 'nombre', 'mail', 'foto') VALUES (NULL, 'nombre_prueba', 'correo_electronico@gmail.com', 'foto.jpg');
